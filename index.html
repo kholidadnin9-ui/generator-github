@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GitHub Pages Game Generator</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef6ff;color:#123}
+.wrap{max-width:1050px;margin:0 auto;padding:28px}
+.card{background:#fff;border-radius:20px;padding:24px;margin-bottom:18px;box-shadow:0 8px 30px #0001}
+h1{margin:0 0 8px;font-size:30px}h2{margin-top:0;color:#1457a6}
+p{line-height:1.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{font-weight:bold;display:block;margin-bottom:6px}input,select{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px}
+button{border:0;border-radius:10px;padding:12px 16px;font-weight:bold;cursor:pointer;margin:6px 6px 0 0;background:#1769d1;color:white}
+button.secondary{background:#e7eef8;color:#123}.success{background:#eafff0;border:1px solid #8cdaa5;padding:14px;border-radius:12px;margin-top:15px}
+pre{background:#0d1726;color:#eaf3ff;padding:16px;border-radius:12px;overflow:auto;white-space:pre-wrap}
+.step{display:flex;gap:12px;align-items:flex-start}.num{background:#1769d1;color:white;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:bold;flex:none}
+small{color:#5b6b7d}.url{word-break:break-all}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+<h1>🚀 GitHub Pages Game Generator</h1>
+<p>Generator sederhana untuk project <b>Vite + React + TypeScript</b>. Masukkan nama repository, lalu aplikasi ini membuat konfigurasi <b>vite.config.ts</b> dan workflow <b>deploy.yml</b> untuk GitHub Pages.</p>
+</div>
+
+<div class="card">
+<h2>1. Data Repository</h2>
+<div class="grid">
+<div><label>Username GitHub</label><input id="user" placeholder="contoh: kholidadnin9-ui"></div>
+<div><label>Nama Repository</label><input id="repo" placeholder="contoh: game-pengurangan-kelas-2-tema-laut"></div>
+</div>
+<button onclick="generate()">⚙️ Buat Generator</button>
+<button class="secondary" onclick="fillExample()">Contoh</button>
+<div id="result"></div>
+</div>
+
+<div class="card">
+<h2>2. vite.config.ts</h2>
+<p>Untuk repository biasa, <code>base</code> harus mengikuti nama repository.</p>
+<pre id="vite">Masukkan data repository di atas.</pre>
+<button onclick="downloadText('vite.config.ts',document.getElementById('vite').textContent)">⬇️ Download vite.config.ts</button>
+</div>
+
+<div class="card">
+<h2>3. GitHub Actions</h2>
+<p>Buat file persis di lokasi <code>.github/workflows/deploy.yml</code>.</p>
+<pre id="yaml">Masukkan data repository di atas.</pre>
+<button onclick="downloadText('deploy.yml',document.getElementById('yaml').textContent)">⬇️ Download deploy.yml</button>
+</div>
+
+<div class="card">
+<h2>4. Checklist Hosting</h2>
+<div class="step"><div class="num">1</div><div>Upload project ke repository GitHub dan pastikan ada <code>package.json</code>, <code>src</code>, <code>public</code>, dan <code>index.html</code>.</div></div><hr>
+<div class="step"><div class="num">2</div><div>Pasang <code>vite.config.ts</code> yang sudah dibuat generator.</div></div><hr>
+<div class="step"><div class="num">3</div><div>Buat <code>.github/workflows/deploy.yml</code> menggunakan file hasil generator.</div></div><hr>
+<div class="step"><div class="num">4</div><div>GitHub → <b>Settings → Pages → Source: GitHub Actions</b>.</div></div><hr>
+<div class="step"><div class="num">5</div><div>GitHub → <b>Actions</b> → tunggu workflow sampai <b>Success</b>.</div></div><hr>
+<div class="step"><div class="num">6</div><div>Buka alamat game yang dibuat generator.</div></div>
+</div>
+</div>
+
+<script>
+const viteTemplate = (repo) => `import path from "path";
+import { fileURLToPath } from "url";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+import { viteSingleFile } from "vite-plugin-singlefile";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// https://vite.dev/config/
+export default defineConfig({
+  base: "/${repo}/",
+  plugins: [react(), tailwindcss(), viteSingleFile()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
+});`;
+
+const yamlTemplate = `name: Deploy Game to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4`;
+
+function generate(){
+ const user=document.getElementById('user').value.trim().replace(/^@/,'');
+ const repo=document.getElementById('repo').value.trim().replace(/^\/+|\/+$/g,'');
+ if(!user||!repo){alert('Isi username GitHub dan nama repository.');return}
+ document.getElementById('vite').textContent=viteTemplate(repo);
+ document.getElementById('yaml').textContent=yamlTemplate;
+ document.getElementById('result').innerHTML='<div class="success"><b>✅ Siap!</b><br>Link game: <span class="url">https://'+user+'.github.io/'+repo+'/</span></div>';
+}
+function fillExample(){document.getElementById('user').value='kholidadnin9-ui';document.getElementById('repo').value='game-pengurangan-kelas-2-tema-laut';generate()}
+function downloadText(name,text){
+ if(!text||text.startsWith('Masukkan')){alert('Buat generator terlebih dahulu.');return}
+ const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
